@@ -1,100 +1,161 @@
-# AI Strategy Copilot
+# AI Strategy Copilot — Streamlit edition
 
-A complete local Python web app for a WHU hackathon practice project. Python 3.10+; no third-party packages or build tools required. The browser interface uses plain HTML, CSS and JavaScript; all AI calls, configuration, validation and HTTP handling run in Python.
+Complete Python app for a fictional WHU hackathon practice case. Requires Python
+3.10 or newer. Run this edition with Streamlit, not `python app.py`.
 
-## Quick start
+## Run in VS Code on Windows
 
-1. Extract the ZIP and open a terminal in `ai_strategy_copilot`.
-2. Open the included `.env` file in a text editor. Set:
-   ```dotenv
-   OPENAI_API_KEY=your_actual_api_key
-   OPENAI_MODEL=gpt-4o-mini
-   PORT=8501
-   ```
-   Dotfiles can be hidden by your file manager. `.env.example` is an identical backup template. Do not add quotes unless needed; never share your real `.env`. An existing process environment variable overrides its `.env` value.
-3. Run:
-   ```bash
-   python app.py
-   ```
-   Use `python3 app.py` on macOS/Linux if necessary, or `py app.py` on Windows.
-4. Open http://127.0.0.1:8501 in your browser.
-5. Edit the goal, budget, constraints and evidence. Click **Compare strategies**.
+1. Extract this ZIP into a new folder. Do not mix it with the previous HTTP-server edition.
+2. In VS Code, open the folder containing app.py and requirements.txt.
+3. Open Terminal → New Terminal and run:
 
-An OpenAI API key with access to the configured model is required for live analysis. API usage is separately billed. The model must support the Responses API and strict JSON-schema structured outputs. Change OPENAI_MODEL if your account does not have access to the default. Configuration is reread on requests; restart after changing PORT.
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
 
-## Features
+4. Open the included `.env` file, add your key and save:
 
-- Editable, prepopulated fictional Düsseldorf café brief, 18 customer comments, three competitors, goal and constraints.
-- Automatic evidence IDs for each nonempty line: B1, F1, C1, U1, etc.
-- Situation summary with fact/assumption/estimate labels and clickable source references.
-- Exactly three options, with actions, pilot cost estimates, incremental staff effort, potential impact, evidence, risks and trade-offs.
-- Transparent ranking: impact 40%, feasibility 35%, evidence 25%; each score is 1–5. Highest-scoring affordable option wins, with original order breaking ties.
-- Recommendation, missing information, contradictory evidence and conditions that could change the decision.
-- 30-day experiment with steps, owners, itemised spending, hypothesis, metric, baseline, measurable success threshold, measurement method and stop condition.
-- Server checks output structure, finite numbers, unique option IDs, source IDs, citations for structured factual claims, recommendation/ranking consistency and budget arithmetic. Invalid reports are rejected, not silently patched.
-- Last five runs retained in browser memory, input-change warning, previous-run viewing and comparison of changed inputs/budgets/recommendations.
-- Downloadable JSON report with the exact input snapshot and source evidence. No API key in exports.
-- Offline scripted sample mode for the original scenario and budget changes; no API calls. Arbitrary edits require live AI and are explicitly rejected in offline mode.
-- API error messages for missing keys, rate limits, unavailable models, incomplete output and connection errors.
+```dotenv
+OPENAI_API_KEY=your_actual_api_key
+OPENAI_MODEL=gpt-4o-mini
+```
 
-## Rehearsal
+5. Start the app:
 
-First enable offline sample mode and click Compare strategies. Try €2,000, €500 and €100. The €100 scenario switches to a no-cash discovery pilot. Offline reports are scripted illustrations, not analysis of your edits.
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run app.py
+```
 
-For live practice disable offline mode, set your API key, and compare the original example. Then reduce budget or add a constraint such as “No discounts or rewards allowed.” Inspect the recommendation and source evidence. The same strategy may remain best; compare its scope and explanation, not just its name.
+Open http://localhost:8501 if a browser does not open automatically. Using the
+virtual environment's Python directly avoids PowerShell activation-policy issues.
+If you already have an active Python environment, simply run:
 
-## Validation and limits
+```bash
+python -m pip install -r requirements.txt
+python -m streamlit run app.py
+```
 
-Run automated checks from the project folder:
+## macOS / Linux
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m streamlit run app.py
+```
+
+Edit `.env` as above. Stop the server with Ctrl+C.
+
+## Streamlit Community Cloud
+
+1. Put this folder's contents in a GitHub repository. Include app.py, core.py,
+   demo.py, sample_data.json, requirements.txt and .streamlit/config.toml.
+2. Do not commit `.env` or `.streamlit/secrets.toml` containing real credentials.
+   The supplied .gitignore excludes both. Example files are safe templates.
+3. On https://share.streamlit.io create an app, select the repository and branch,
+   and set the main file path to `app.py` (or the relative path if nested).
+4. Select Python 3.11 or newer in advanced settings when offered.
+5. Paste the following TOML into the app's Secrets configuration:
+
+```toml
+OPENAI_API_KEY = "your_actual_api_key"
+OPENAI_MODEL = "gpt-4o-mini"
+APP_PASSWORD = "choose-a-long-private-password"
+```
+
+6. Deploy. Streamlit installs requirements.txt and runs app.py.
+
+APP_PASSWORD is optional. If set, the sidebar requires this shared password before
+showing the app or running analysis. This is a basic demo access gate, not a full
+user-account system or rate limiter. Do not expose an unrestricted API-funded app
+to the public. AI API usage remains separately billed from hosting.
+
+Official deployment/secrets guidance:
+https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management
+
+## Configuration precedence
+
+OpenAI key/model: Streamlit secrets → process environment → local `.env` → defaults.
+For local Streamlit secrets, copy `.streamlit/secrets.toml.example` to
+`.streamlit/secrets.toml` and fill in the key. Do not rename the example unless you
+intend to use it: a placeholder secret would override a valid `.env` key.
+APP_PASSWORD is read from Streamlit secrets or the process environment (not .env).
+Restart after changing local configuration if necessary. No API key input widget
+is exposed, and credentials are never included in report downloads.
+
+## Included features
+
+- Editable company brief, 18 customer comments, three fictional competitors,
+  goal, cash budget and operational constraints.
+- Compare strategies button and optional offline scripted rehearsal mode.
+- Three scored options with cost/effort estimates, evidence, risks and trade-offs.
+- Python selects the highest-scoring affordable option using impact 40%,
+  feasibility 35% and evidence 25%. Ties follow original order.
+- Two-stage live analysis: AI generates options; Python selects; AI writes the
+  recommendation and experiment for that fixed winner.
+- Facts, assumptions and estimates labelled; source expanders show exact inputs.
+- Missing information, conflicting reports and decision-changing evidence.
+- Itemised 30-day experiment, owner/day ranges, hypothesis, metric, baseline,
+  success threshold, measurement method and stop condition.
+- Budget arithmetic, score, source-ID and structured-output validation.
+- Five-run session history, side-by-side input change inspection, stale-report
+  warning, and JSON export with each run's complete evidence snapshot.
+- Optional shared password and server-side secret configuration.
+
+## Offline rehearsal
+
+Check Offline sample mode, keep the original scenario, and click Compare strategies.
+Try budgets of €2,000, €500 and €100. Offline mode is explicitly scripted and
+supports budget changes only. Arbitrary goal/evidence/constraint edits require
+live AI. Use Reset fictional example to restore the defaults. Resetting inputs
+does not delete previous reports.
+
+## Tests and verification
+
 ```bash
 python -m unittest discover -s tests -v
 ```
-Tests cover low/zero budgets, overbudget rejection, fabricated source IDs, uncited facts, invalid numbers, ranking consistency, a mocked API response, static-file serving, secret-file isolation, cross-origin rejection and the offline HTTP flow.
 
-Live API calls were not executed during packaging because no user API key was supplied. The API integration follows the official structured-output contract: https://developers.openai.com/api/docs/guides/structured-outputs . Automated source-ID checks do not verify semantic support, and schema validity does not guarantee factual accuracy. Review each claim, score, forecast and operational constraint. Narrative text is prompted to remain grounded but is not semantically proven by the validator. Scores and financial impacts are estimates, not measured outcomes.
+Core tests cover the API contract using mock responses, missing keys, zero/low
+budgets, invalid numbers, invalid citations, incorrect ranking, ties, overbudget
+options and experiment spending. The optional Streamlit AppTest checks the offline
+UI flow and stale-report warning; it skips when Streamlit is not installed.
 
-The included company and competitors are invented, and all numbers/comments are synthetic practice data. The prototype does not browse the web, independently validate market facts, perform accounting or execute recommended actions.
+Packaging checks: Python 3.10 and 3.11 grammar validation and the core tests passed.
+Streamlit could not be installed in the packaging environment, so actual Streamlit
+UI execution was not verified there. The AppTest is included for running after
+installation. No live API requests were made: supply your own API key to test live.
 
-## Data and operation
+## Limitations and data
 
-Live mode sends your goal, budget and entered evidence to OpenAI. The request sets `store=false`; provider data handling still applies. Do not submit information you are not authorised to send. The app has no database and does not persist edits or reports automatically. Refreshing/closing the browser loses run history; export reports to preserve them. A failed request keeps the previous successful report visible with its original snapshot.
-
-The `.env` file stays server-side, is excluded by `.gitignore`, and cannot be fetched by the app's fixed static routes. The server listens only on 127.0.0.1 and rejects cross-origin browser submissions. This is a local, single-user practice app, not a production multi-user deployment; keep it bound to localhost.
-
-## Files
-
-- `app.py`: Python web server and API routes.
-- `core.py`: input processing, schemas, ranking checks and OpenAI client.
-- `demo.py`: deterministic offline rehearsal report.
-- `sample_data.json`: editable fictional defaults loaded at startup in the browser.
-- `static/`: browser interface.
-- `.env`: private API configuration, shipped with an empty key.
-- `.env.example`: configuration template.
-- `tests/test_app.py`: standard-library automated tests.
-- `requirements.txt`: notes that no external dependencies are needed.
+All defaults are invented practice data. The app sends live-mode evidence to
+OpenAI with store=false; provider data handling still applies. Source-ID validation
+does not establish semantic correctness. Scores, costs and business effects are
+estimates; inspect the evidence and feasibility before acting. The app does not
+browse the web or carry out recommendations. There is no database. Closing or
+refreshing the session may lose reports; use JSON export to preserve them.
+A failed run leaves previous successful reports intact. Two sequential API calls
+can take several minutes and each incurs API usage.
 
 ## Troubleshooting
 
-- Port in use: change PORT in `.env` and restart.
-- Missing key: fill OPENAI_API_KEY in `.env` beside app.py.
-- 401: check the API key. 429: check API billing/quota or wait before retrying.
-- 400/404: check model access and structured-output support.
-- Report validation failed: retry; if persistent, try another supported model. No report is silently repaired.
-- Edited input rejected in offline mode: reset the fictional example or disable offline mode.
+- `No module named streamlit`: install requirements using the same Python you use to launch.
+- `missing ScriptRunContext`: launch with `python -m streamlit run app.py`.
+- Missing key: fill `.env` locally or Streamlit Secrets in the cloud.
+- Unexpected key/model: check secret precedence; remove placeholder secrets.
+- API 401/429: check credentials/billing/quota. API 400/404: check model access and
+  support for Responses API structured outputs.
+- Validation failure: retry and inspect inputs; invalid reports are not silently published.
+- Password prompt: use the APP_PASSWORD configured by the app owner.
 
+## Files
 
-## Ranking fix — 12 October 2026
-
-The live workflow now makes two API calls. First, AI generates and scores three
-options. Python validates them and selects the highest-scoring affordable option,
-using original order for ties. Second, AI writes the recommendation and experiment
-for that fixed winner. The model cannot change the winning ID or the option scores
-in the second stage. Budget and citation checks remain enabled.
-
-This resolves the previous model-versus-Python ranking mismatch. Two calls can
-increase latency and API usage. A failed second call still leaves any previous
-successful report intact. Tests use mocked API responses; no live API key was used.
-
-To update an existing installation, replace core.py with this version and restart
-python app.py. Keep your existing .env and API key. Replacing the whole app is also
-possible, but back up .env first: the download deliberately contains an empty key.
+app.py — Streamlit UI and session state
+core.py — evidence preparation, schemas, validation and API calls
+demo.py — offline sample report
+sample_data.json — editable fictional defaults
+requirements.txt — Streamlit dependency
+.env / .env.example — local API configuration
+.streamlit/config.toml — theme
+.streamlit/secrets.toml.example — cloud/local secrets template
+tests/ — core regression tests and optional Streamlit UI test
