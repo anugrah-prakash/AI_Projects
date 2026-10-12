@@ -170,7 +170,7 @@ def request_structured(payload, config, schema, instructions):
         check_schema(parsed, schema)
         return parsed
     except (ValueError, KeyError, TypeError) as error:
-        raise ValueError(f'Generated report failed validation: {str(error).rstrip('.')}. No new report was published; retry.') from None
+        raise ValueError(f"Generated report failed validation: {str(error).rstrip('.')}. No new report was published; retry.") from None
 
 
 def generate(context, config):
