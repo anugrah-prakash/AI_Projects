@@ -1,77 +1,83 @@
-# Decoding the Amt — line-cited extraction update
+# AI Strategy Copilot
 
-## Run
+A complete local Python web app for a WHU hackathon practice project. Python 3.10+; no third-party packages or build tools required. The browser interface uses plain HTML, CSS and JavaScript; all AI calls, configuration, validation and HTTP handling run in Python.
 
-Use Python 3.11+. Extract this project, open a terminal in its folder, and run:
+## Quick start
 
-```sh
-python -m venv .venv
-```
+1. Extract the ZIP and open a terminal in `ai_strategy_copilot`.
+2. Open the included `.env` file in a text editor. Set:
+   ```dotenv
+   OPENAI_API_KEY=your_actual_api_key
+   OPENAI_MODEL=gpt-4o-mini
+   PORT=8501
+   ```
+   Dotfiles can be hidden by your file manager. `.env.example` is an identical backup template. Do not add quotes unless needed; never share your real `.env`. An existing process environment variable overrides its `.env` value.
+3. Run:
+   ```bash
+   python app.py
+   ```
+   Use `python3 app.py` on macOS/Linux if necessary, or `py app.py` on Windows.
+4. Open http://127.0.0.1:8501 in your browser.
+5. Edit the goal, budget, constraints and evidence. Click **Compare strategies**.
 
-Activate on Windows: `.venv\Scripts\Activate.ps1`
+An OpenAI API key with access to the configured model is required for live analysis. API usage is separately billed. The model must support the Responses API and strict JSON-schema structured outputs. Change OPENAI_MODEL if your account does not have access to the default. Configuration is reread on requests; restart after changing PORT.
 
-Activate on macOS/Linux: `source .venv/bin/activate`
+## Features
 
-```sh
-python -m pip install -r requirements.txt
-python -m streamlit run app.py
-```
+- Editable, prepopulated fictional Düsseldorf café brief, 18 customer comments, three competitors, goal and constraints.
+- Automatic evidence IDs for each nonempty line: B1, F1, C1, U1, etc.
+- Situation summary with fact/assumption/estimate labels and clickable source references.
+- Exactly three options, with actions, pilot cost estimates, incremental staff effort, potential impact, evidence, risks and trade-offs.
+- Transparent ranking: impact 40%, feasibility 35%, evidence 25%; each score is 1–5. Highest-scoring affordable option wins, with original order breaking ties.
+- Recommendation, missing information, contradictory evidence and conditions that could change the decision.
+- 30-day experiment with steps, owners, itemised spending, hypothesis, metric, baseline, measurable success threshold, measurement method and stop condition.
+- Server checks output structure, finite numbers, unique option IDs, source IDs, citations for structured factual claims, recommendation/ranking consistency and budget arithmetic. Invalid reports are rejected, not silently patched.
+- Last five runs retained in browser memory, input-change warning, previous-run viewing and comparison of changed inputs/budgets/recommendations.
+- Downloadable JSON report with the exact input snapshot and source evidence. No API key in exports.
+- Offline scripted sample mode for the original scenario and budget changes; no API calls. Arbitrary edits require live AI and are explicitly rejected in offline mode.
+- API error messages for missing keys, rate limits, unavailable models, incomplete output and connection errors.
 
-Before launching, put your API key in `.env`. When updating an existing installation,
-keep your existing private `.env`. Stop the old process with Ctrl+C before restarting.
+## Rehearsal
 
-## Current pipeline
+First enable offline sample mode and click Compare strategies. Try €2,000, €500 and €100. The €100 scenario switches to a no-cash discovery pilot. Offline reports are scripted illustrations, not analysis of your edits.
 
-1. Read a PDF's usable text layer, or transcribe images/scans using vision.
-2. Let the reader compare and correct the text against the original.
-3. Number source lines and extract all three answers together using `pipeline.py`.
-4. Ask a second model request to correct the draft and add omitted explicit facts.
-5. Build evidence quotes from the cited source lines locally. Reject invalid citations,
-   unsupported numbers, and deadlines/amounts absent from the action's evidence.
-6. Show concise answers, with source excerpts inside expandable panels.
+For live practice disable offline mode, set your API key, and compare the original example. Then reduce budget or add a constraint such as “No discounts or rewards allowed.” Inspect the recommendation and source evidence. The same strategy may remain best; compare its scope and explanation, not just its name.
 
-This replaces the old Boolean-review/per-question pipeline. `core.py` retains legacy
-helpers for regression tests, but the app now imports `pipeline.analyze`.
-No answer for the supplied sample is hard-coded into the application. The sample
-text and expected responses are used only in offline tests.
+## Validation and limits
 
-If one item fails evidence matching, other supported items remain, with a warning.
-A wholly empty result is now an extraction error, never a claim that the letter has
-no requirements. Malformed structured responses are discarded and retried once.
-Scanned inputs normally use three model calls; PDFs with usable text use two.
-Retries can double those calls. API usage is billed to your API account.
-
-The app accepts a single PDF (1–6 pages), image or camera photo up to 20 MB.
-For multi-page photos combine them into one PDF. Browser camera access requires
-permission and localhost or HTTPS. Theme, SVG graphics and animations run locally.
-Reduced-motion settings are respected.
-
-## Limits and privacy
-
-AI interpretation can still be wrong. Source citations and a corrective review do
-not prove semantic accuracy. Verify the original before acting. This is a reading
-aid, not a legal decision system. Relative dates are not calculated. The model must
-not infer missing deadlines, amounts or penalties. Missing facts should prompt asking
-the sender. No outside legal knowledge is injected into the interpretation.
-
-Letter data is sent to OpenAI after consent. Requests use store=False; provider
-retention rules still apply. The app keeps session data in memory without intentionally
-writing letter files or logging their text. Clearing the app is not secure memory
-erasure or deletion of provider records. Keep .env private. Public deployment requires
-authentication, HTTPS, cost controls and a privacy/security review.
-
-## Verification
-
-```sh
+Run automated checks from the project folder:
+```bash
 python -m unittest discover -s tests -v
 ```
+Tests cover low/zero budgets, overbudget rejection, fabricated source IDs, uncited facts, invalid numbers, ranking consistency, a mocked API response, static-file serving, secret-file isolation, cross-origin rejection and the offline HTTP flow.
 
-32 offline tests pass, including legacy regressions and the new line-cited pipeline.
-Tests of model behavior use mocked responses: they do not establish live AI accuracy.
-The supplied Finanzamt PDF's native text extraction was tested directly. Live API and
-browser testing were not possible in the build environment.
+Live API calls were not executed during packaging because no user API key was supplied. The API integration follows the official structured-output contract: https://developers.openai.com/api/docs/guides/structured-outputs . Automated source-ID checks do not verify semantic support, and schema validity does not guarantee factual accuracy. Review each claim, score, forecast and operational constraint. Narrative text is prompted to remain grounded but is not semantically proven by the validator. Scores and financial impacts are estimates, not measured outcomes.
 
-For the supplied sample, expected content is: the office wants the 2025 tax return;
-submit online via ELSTER by 31 October 2026; if you believe filing is unnecessary,
-explain why in writing. Lateness may lead to a late fee, tax estimation and a threat
-of a coercive fine. The original letter specifies no penalty amount.
+The included company and competitors are invented, and all numbers/comments are synthetic practice data. The prototype does not browse the web, independently validate market facts, perform accounting or execute recommended actions.
+
+## Data and operation
+
+Live mode sends your goal, budget and entered evidence to OpenAI. The request sets `store=false`; provider data handling still applies. Do not submit information you are not authorised to send. The app has no database and does not persist edits or reports automatically. Refreshing/closing the browser loses run history; export reports to preserve them. A failed request keeps the previous successful report visible with its original snapshot.
+
+The `.env` file stays server-side, is excluded by `.gitignore`, and cannot be fetched by the app's fixed static routes. The server listens only on 127.0.0.1 and rejects cross-origin browser submissions. This is a local, single-user practice app, not a production multi-user deployment; keep it bound to localhost.
+
+## Files
+
+- `app.py`: Python web server and API routes.
+- `core.py`: input processing, schemas, ranking checks and OpenAI client.
+- `demo.py`: deterministic offline rehearsal report.
+- `sample_data.json`: editable fictional defaults loaded at startup in the browser.
+- `static/`: browser interface.
+- `.env`: private API configuration, shipped with an empty key.
+- `.env.example`: configuration template.
+- `tests/test_app.py`: standard-library automated tests.
+- `requirements.txt`: notes that no external dependencies are needed.
+
+## Troubleshooting
+
+- Port in use: change PORT in `.env` and restart.
+- Missing key: fill OPENAI_API_KEY in `.env` beside app.py.
+- 401: check the API key. 429: check API billing/quota or wait before retrying.
+- 400/404: check model access and structured-output support.
+- Report validation failed: retry; if persistent, try another supported model. No report is silently repaired.
+- Edited input rejected in offline mode: reset the fictional example or disable offline mode.
