@@ -81,3 +81,20 @@ The `.env` file stays server-side, is excluded by `.gitignore`, and cannot be fe
 - 400/404: check model access and structured-output support.
 - Report validation failed: retry; if persistent, try another supported model. No report is silently repaired.
 - Edited input rejected in offline mode: reset the fictional example or disable offline mode.
+
+
+## Ranking fix — 12 October 2026
+
+The live workflow now makes two API calls. First, AI generates and scores three
+options. Python validates them and selects the highest-scoring affordable option,
+using original order for ties. Second, AI writes the recommendation and experiment
+for that fixed winner. The model cannot change the winning ID or the option scores
+in the second stage. Budget and citation checks remain enabled.
+
+This resolves the previous model-versus-Python ranking mismatch. Two calls can
+increase latency and API usage. A failed second call still leaves any previous
+successful report intact. Tests use mocked API responses; no live API key was used.
+
+To update an existing installation, replace core.py with this version and restart
+python app.py. Keep your existing .env and API key. Replacing the whole app is also
+possible, but back up .env first: the download deliberately contains an empty key.

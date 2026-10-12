@@ -36,7 +36,7 @@ function history(){
 $('compare').onclick=async()=>{
  const inputs=read();
  if(!$('budget').value.trim()||!Number.isFinite(inputs.budget)||inputs.budget<0){$('message').textContent='Enter a valid nonnegative budget.';return;}
- $('compare').disabled=true;$('reset').disabled=true;$('message').className='';$('message').textContent='Comparing evidence and validating the report… This may take up to two minutes.';
+ $('compare').disabled=true;$('reset').disabled=true;$('message').className='';$('message').textContent='Comparing evidence and validating the report… Live analysis uses two stages and may take up to four minutes.';
  try{
   const response=await fetch('/api/compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...inputs,demo:$('demo').checked})});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'Request failed.');
