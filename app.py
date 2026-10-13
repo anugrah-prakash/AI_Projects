@@ -9,6 +9,24 @@ from demo import sample_report
 
 st.set_page_config(page_title='AI Strategy Copilot', page_icon='💡', layout='wide')
 
+STRATEGY_BANNER = '''<style>
+.strategy-banner{--ink:#0b0b0b;--muted:#898781;--baseline:#c3c2b7;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a}
+@media (prefers-color-scheme: dark){.strategy-banner{--ink:#f0efec;--baseline:#383835;--s1:#3987e5;--s2:#d95926;--s3:#199e70}}
+.strategy-banner svg{width:100%;height:auto;max-height:112px;display:block;margin-top:10px}
+</style>
+<div class="strategy-banner" role="img" aria-label="Three strategy options rising toward a shared growth target">
+<svg viewBox="0 0 360 96" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <line x1="24" y1="80" x2="252" y2="80" stroke="var(--baseline)" stroke-width="2"/>
+  <path d="M48 80 V60 a4 4 0 0 1 4 -4 h18 a4 4 0 0 1 4 4 V80 Z" fill="var(--s1)"/>
+  <path d="M104 80 V48 a4 4 0 0 1 4 -4 h18 a4 4 0 0 1 4 4 V80 Z" fill="var(--s2)"/>
+  <path d="M160 80 V28 a4 4 0 0 1 4 -4 h18 a4 4 0 0 1 4 4 V80 Z" fill="var(--s3)"/>
+  <circle cx="308" cy="44" r="17" fill="none" stroke="var(--muted)" stroke-width="2.5"/>
+  <circle cx="308" cy="44" r="9" fill="none" stroke="var(--muted)" stroke-width="2.5"/>
+  <path d="M36 70 C 120 62, 210 54, 295 44" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"/>
+  <polygon points="308,44 294,38 294,50" fill="var(--ink)"/>
+</svg>
+</div>'''
+
 def secret(name, fallback=''):
     try:
         return str(st.secrets.get(name, fallback))
@@ -20,8 +38,12 @@ for key in ('OPENAI_API_KEY', 'OPENAI_MODEL'):
     config[key] = secret(key, config[key])
 password = secret('APP_PASSWORD', os.environ.get('APP_PASSWORD', ''))
 
-st.title('AI Strategy Copilot')
-st.caption('WHU hackathon practice · Evidence-backed growth experiments')
+hero_text, hero_graphic = st.columns([2.4, 1])
+with hero_text:
+    st.title('AI Strategy Copilot')
+    st.caption('WHU hackathon practice · Evidence-backed growth experiments')
+with hero_graphic:
+    st.markdown(STRATEGY_BANNER, unsafe_allow_html=True)
 if password:
     with st.sidebar:
         st.text_input('App password', type='password', key='access_password')
