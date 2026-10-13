@@ -1,6 +1,8 @@
 """Launch with: python -m streamlit run app.py"""
 import hmac
+import html
 import json
+import math
 import os
 from datetime import datetime, timezone
 import streamlit as st
@@ -75,6 +77,84 @@ def bullets(items):
     for item in items:
         st.write('• ' + item)
 
+VIZ_VARS = '''<style>
+.svz{--ink:#0b0b0b;--muted:#898781;--grid:#e1e0d9;--gray:#c3c2b7;--red:#d03b3b;
+--blue:#2a78d6;--orange:#eb6834;--aqua:#1baf7a}
+@media (prefers-color-scheme: dark){.svz{--ink:#f0efec;--grid:#2c2c2a;--gray:#383835;
+--blue:#3987e5;--orange:#d95926;--aqua:#199e70}}
+.svz svg{width:100%;height:auto;display:block}
+.svz text{font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+</style>'''
+
+def nice_step(raw):
+    raw = raw or 1.0
+    exp = 10 ** math.floor(math.log10(raw))
+    for m in (1, 2, 2.5, 5, 10):
+        if m * exp >= raw:
+            return m * exp
+    return 10 * exp
+
+def eur_short(v):
+    if v >= 1_000_000:
+        return f"€{v/1_000_000:.1f}M".replace('.0M', 'M')
+    if v >= 10_000:
+        return f"€{v/1_000:.0f}k"
+    return f"€{v:,.0f}"
+
+def short_name(text, limit=26):
+    return html.escape(text if len(text) <= limit else text[:limit-1] + '…')
+
+def svg_row_chart(rows, max_x, ticks, fmt=lambda v: f'{v:g}', budget=None, budget_label=''):
+    top = 26 if budget is not None else 10
+    row_h, x0, plot_w, bottom = 46, 196, 384, 24
+    h = top + row_h * len(rows) + bottom
+    p = [f'<svg viewBox="0 0 640 {h}" xmlns="http://www.w3.org/2000/svg" role="img">']
+    for t in ticks:
+        x = x0 + t / max_x * plot_w
+        p.append(f'<line x1="{x:.0f}" y1="{top}" x2="{x:.0f}" y2="{h-bottom}" stroke="var(--grid)" stroke-width="1"/>')
+        p.append(f'<text x="{x:.0f}" y="{h-7}" text-anchor="middle" font-size="11" fill="var(--muted)">{fmt(t)}</text>')
+    for i, row in enumerate(rows):
+        cy = top + i * row_h + 23
+        w = max(row['value'] / max_x * plot_w, 8)
+        lx = x0 + w + 8
+        weight = 600 if row.get('bold') else 400
+        p.append(f'<text x="8" y="{cy+4}" font-size="13" font-weight="{weight}" fill="var(--ink)">{short_name(row["name"])}</text>')
+        p.append(f'<path d="M{x0} {cy-9} h{w-4:.1f} a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-{w-4:.1f} z" fill="var(--{row["color"]})"/>')
+        p.append(f'<text x="{lx:.0f}" y="{cy+4}" font-size="12" font-weight="600" fill="var(--ink)">{row["label"]}</text>')
+        if row.get('tag'):
+            p.append(f'<text x="{lx:.0f}" y="{cy-9}" font-size="10" fill="var(--muted)">{row["tag"]}</text>')
+    if budget is not None:
+        bx = x0 + min(budget, max_x) / max_x * plot_w
+        anchor = 'start' if bx < 480 else 'end'
+        px = bx + 4 if anchor == 'start' else bx - 4
+        p.append(f'<line x1="{bx:.0f}" y1="{top-4}" x2="{bx:.0f}" y2="{h-bottom}" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="5 4"/>')
+        p.append(f'<text x="{px:.0f}" y="{top-8}" text-anchor="{anchor}" font-size="11" font-weight="600" fill="var(--ink)">{html.escape(budget_label)}</text>')
+    p.append('</svg>')
+    return ''.join(p)
+
+def svg_component_chart(options, rec_id):
+    x0, plot_w, max_x = 8, 500, 5
+    top, name_h, row_h, gap = 26, 24, 17, 14
+    h = top + len(options) * (name_h + 3 * row_h + gap)
+    p = [f'<svg viewBox="0 0 640 {h}" xmlns="http://www.w3.org/2000/svg" role="img">']
+    for j, (label, color) in enumerate((('Impact', 'blue'), ('Feasibility', 'orange'), ('Evidence', 'aqua'))):
+        p.append(f'<rect x="{8 + j*140}" y="2" width="11" height="11" rx="3" fill="var(--{color})"/>')
+        p.append(f'<text x="{24 + j*140}" y="12" font-size="11" fill="var(--muted)">{label}</text>')
+    y = top
+    for o in options:
+        weight = 600 if o['id'] == rec_id else 400
+        p.append(f'<text x="8" y="{y+14}" font-size="13" font-weight="{weight}" fill="var(--ink)">{short_name(o["name"])}</text>')
+        y += name_h
+        for key, color in (('impact_score', 'blue'), ('feasibility_score', 'orange'), ('evidence_score', 'aqua')):
+            v = float(o[key])
+            w = max(v / max_x * plot_w, 6)
+            p.append(f'<path d="M{x0} {y} h{w-4:.1f} a4 4 0 0 1 4 4 v2 a4 4 0 0 1 -4 4 h-{w-4:.1f} z" fill="var(--{color})"/>')
+            p.append(f'<text x="{x0+w+7:.0f}" y="{y+9}" font-size="11" font-weight="600" fill="var(--ink)">{v:g}</text>')
+            y += row_h
+        y += gap
+    p.append('</svg>')
+    return ''.join(p)
+
 with st.sidebar:
     st.header('Analysis settings')
     demo = st.checkbox('Offline sample mode', value=False)
@@ -135,7 +215,7 @@ if runs:
     st.write('Goal for this report: ' + run['inputs']['goal'])
     st.download_button('Download report (.json)', data=json.dumps(run, ensure_ascii=False, indent=2),
                        file_name='strategy-report.json', mime='application/json')
-    overview, experiment_tab, evidence_tab, history_tab = st.tabs(['Strategy comparison', '30-day experiment', 'Evidence and uncertainty', 'Compare runs'])
+    overview, visuals_tab, experiment_tab, evidence_tab, history_tab = st.tabs(['Strategy comparison', 'Strategy visuals', '30-day experiment', 'Evidence and uncertainty', 'Compare runs'])
     winner = next(o for o in r['options'] if o['id'] == r['recommended_id'])
     with overview:
         st.subheader('Situation')
@@ -158,6 +238,28 @@ if runs:
                 st.write('Score rationale: ' + o['score_rationale'])
                 st.write('Trade-offs'); bullets(o['tradeoffs'])
                 st.write('Risks'); bullets(o['risks'])
+    with visuals_tab:
+        st.caption('The comparison table drawn as charts. Bars start at zero; the recommended strategy is highlighted.')
+        st.subheader('Weighted score by strategy')
+        st.markdown(VIZ_VARS + '<div class="svz">' + svg_row_chart(
+            [{'name':o['name'], 'value':score(o), 'label':f'{score(o):.2f}',
+              'color':'blue' if o['id']==r['recommended_id'] else 'gray',
+              'bold':o['id']==r['recommended_id'],
+              'tag':'recommended' if o['id']==r['recommended_id'] else ''} for o in r['options']],
+            5, [0,1,2,3,4,5]) + '</div>', unsafe_allow_html=True)
+        st.subheader('Pilot cost vs available budget')
+        budget_val = run['context']['budget']
+        step = nice_step(max([o['cost_eur'] for o in r['options']] + [budget_val]) / 4)
+        st.markdown('<div class="svz">' + svg_row_chart(
+            [{'name':o['name'], 'value':o['cost_eur'], 'label':eur_short(o['cost_eur']),
+              'color':'aqua' if o['cost_eur'] <= budget_val else 'red',
+              'bold':o['id']==r['recommended_id'],
+              'tag':'within budget' if o['cost_eur'] <= budget_val else 'over budget'} for o in r['options']],
+            step*4, [step*i for i in range(5)], fmt=eur_short,
+            budget=budget_val, budget_label='Budget ' + eur_short(budget_val)) + '</div>', unsafe_allow_html=True)
+        st.subheader('What drives the score')
+        st.caption('Component scores 1–5. Weighted score = 40% impact + 35% feasibility + 25% evidence.')
+        st.markdown('<div class="svz">' + svg_component_chart(r['options'], r['recommended_id']) + '</div>', unsafe_allow_html=True)
     with experiment_tab:
         exp = r['experiment']
         total = round(sum(c['amount_eur'] for c in exp['costs']), 2)
